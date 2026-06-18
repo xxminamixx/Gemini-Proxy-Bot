@@ -39,7 +39,7 @@ client.on(Events.InteractionCreate, async interaction => {
     await command.execute(interaction);
   } catch (err) {
     console.error(err);
-    const msg = { content: 'コマンドの実行中にエラーが発生しました。', ephemeral: true };
+    const msg = { content: 'コマンドの実行中にエラーが発生しました。', flags: 64 };
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp(msg);
     } else {

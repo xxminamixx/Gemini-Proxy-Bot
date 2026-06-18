@@ -88,12 +88,10 @@ module.exports = {
 
     // ── /gemini setup ──────────────────────────────────────────────
     if (sub === 'setup') {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
       const apiKey = interaction.options.getString('api_key');
       await db.setUserKey(interaction.user.id, apiKey);
-      return interaction.reply({
-        content: '個人 API キーを登録しました。',
-        flags: MessageFlags.Ephemeral,
-      });
+      return interaction.editReply('個人 API キーを登録しました。');
     }
 
     // ── /gemini admin-setup ────────────────────────────────────────
@@ -104,12 +102,10 @@ module.exports = {
           flags: MessageFlags.Ephemeral,
         });
       }
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
       const apiKey = interaction.options.getString('api_key');
       await db.setServerKey(interaction.guildId, apiKey, interaction.user.id);
-      return interaction.reply({
-        content: 'サーバー共通 API キーを設定しました。',
-        flags: MessageFlags.Ephemeral,
-      });
+      return interaction.editReply('サーバー共通 API キーを設定しました。');
     }
 
     // ── /gemini clear ──────────────────────────────────────────────
@@ -123,24 +119,21 @@ module.exports = {
 
     // ── /gemini remove-key ─────────────────────────────────────────
     if (sub === 'remove-key') {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
       await db.deleteUserKey(interaction.user.id);
-      return interaction.reply({
-        content: '個人 API キーを削除しました。',
-        flags: MessageFlags.Ephemeral,
-      });
+      return interaction.editReply('個人 API キーを削除しました。');
     }
 
     // ── /gemini schedule-add ───────────────────────────────────────
     if (sub === 'schedule-add') {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
       const apiKey =
         (await db.getUserKey(interaction.user.id)) ??
         (await db.getServerKey(interaction.guildId));
 
       if (!apiKey) {
-        return interaction.reply({
-          content: 'API キーが設定されていません。先に `/gemini setup` または `/gemini admin-setup` でキーを登録してください。',
-          flags: MessageFlags.Ephemeral,
-        });
+        return interaction.editReply('API キーが設定されていません。先に `/gemini setup` または `/gemini admin-setup` でキーを登録してください。');
       }
 
       const label = interaction.options.getString('label');
@@ -159,58 +152,45 @@ module.exports = {
         interval_minutes,
       }, interaction.client);
 
-      return interaction.reply({
-        content: [
-          `✅ スケジュールを登録しました。`,
-          `- **名前**: ${label}`,
-          `- **プロンプト**: ${prompt}`,
-          `- **間隔**: ${interval_minutes} 分ごと`,
-          `- **チャンネル**: <#${channel.id}>`,
-          `- **ID**: \`${id}\`（削除時に使用）`,
-        ].join('\n'),
-        flags: MessageFlags.Ephemeral,
-      });
+      return interaction.editReply([
+        `✅ スケジュールを登録しました。`,
+        `- **名前**: ${label}`,
+        `- **プロンプト**: ${prompt}`,
+        `- **間隔**: ${interval_minutes} 分ごと`,
+        `- **チャンネル**: <#${channel.id}>`,
+        `- **ID**: \`${id}\`（削除時に使用）`,
+      ].join('\n'));
     }
 
     // ── /gemini schedule-list ──────────────────────────────────────
     if (sub === 'schedule-list') {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
       const schedules = await getSchedulesByGuild(interaction.guildId);
 
       if (schedules.length === 0) {
-        return interaction.reply({
-          content: 'このサーバーに登録されたスケジュールはありません。',
-          flags: MessageFlags.Ephemeral,
-        });
+        return interaction.editReply('このサーバーに登録されたスケジュールはありません。');
       }
 
       const lines = schedules.map(s =>
         `**${s.label}** (ID: \`${s.id}\`)\n  📍 <#${s.channel_id}> | ⏱ ${s.interval_minutes}分ごと\n  💬 ${s.prompt}`
       );
 
-      return interaction.reply({
-        content: `📅 **スケジュール一覧 (${schedules.length}件)**\n\n${lines.join('\n\n')}`,
-        flags: MessageFlags.Ephemeral,
-      });
+      return interaction.editReply(`📅 **スケジュール一覧 (${schedules.length}件)**\n\n${lines.join('\n\n')}`);
     }
 
     // ── /gemini schedule-remove ────────────────────────────────────
     if (sub === 'schedule-remove') {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
       const id = interaction.options.getString('id');
       const schedules = await getSchedulesByGuild(interaction.guildId);
       const target = schedules.find(s => s.id === id);
 
       if (!target) {
-        return interaction.reply({
-          content: `ID \`${id}\` のスケジュールが見つかりません。`,
-          flags: MessageFlags.Ephemeral,
-        });
+        return interaction.editReply(`ID \`${id}\` のスケジュールが見つかりません。`);
       }
 
       await removeSchedule(id);
-      return interaction.reply({
-        content: `✅ スケジュール「${target.label}」を削除しました。`,
-        flags: MessageFlags.Ephemeral,
-      });
+      return interaction.editReply(`✅ スケジュール「${target.label}」を削除しました。`);
     }
 
     // ── /gemini chat ───────────────────────────────────────────────
