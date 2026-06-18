@@ -1,49 +1,79 @@
-const fs = require('fs');
-const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 
-const DATA_DIR = path.join(__dirname, '../../data');
-const DB_FILE = path.join(DATA_DIR, 'keys.json');
-
-function load() {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  if (!fs.existsSync(DB_FILE)) fs.writeFileSync(DB_FILE, JSON.stringify({ servers: {}, users: {} }));
-  return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-}
-
-function save(data) {
-  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
-}
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY,
+);
 
 module.exports = {
-  setServerKey(guildId, apiKey, userId) {
-    const data = load();
-    data.servers[guildId] = { apiKey, setBy: userId, setAt: Date.now() };
-    save(data);
+  async setServerKey(guildId, apiKey, userId) {
+    const { error } = await supabase.from('server_keys').upsert(
+      { guild_id: guildId, api_key: apiKey, set_by: userId, set_at: Date.now() },
+      { onConflict: 'guild_id' },
+    );
+    if (error) throw error;
   },
 
-  getServerKey(guildId) {
-    return load().servers[guildId]?.apiKey ?? null;
+  async getServerKey(guildId) {
+    const { data, error } = await supabase
+      .from('server_keys')
+      .select('api_key')
+      .eq('guild_id', guildId)
+      .single();
+    if (error && error.code !== 'PGRST116') throw error;
+    return data?.api_key ?? null;
   },
 
-  setUserKey(userId, apiKey) {
-    const data = load();
-    data.users[userId] = { apiKey, setAt: Date.now() };
-    save(data);
+  async setUserKey(userId, apiKey) {
+    const { error } = await supabase.from('user_keys').upsert(
+      { user_id: userId, api_key: apiKey, set_at: Date.now() },
+      { onConflict: 'user_id' },
+    );
+    if (error) throw error;
   },
 
-  getUserKey(userId) {
-    return load().users[userId]?.apiKey ?? null;
+  async getUserKey(userId) {
+    const { data, error } = await supabase
+      .from('user_keys')
+      .select('api_key')
+      .eq('user_id', userId)
+      .single();
+    if (error && error.code !== 'PGRST116') throw error;
+    return data?.api_key ?? null;
   },
 
-  deleteUserKey(userId) {
-    const data = load();
-    delete data.users[userId];
-    save(data);
+  async deleteUserKey(userId) {
+    const { error } = await supabase.from('user_keys').delete().eq('user_id', userId);
+    if (error) throw error;
   },
 
-  deleteServerKey(guildId) {
-    const data = load();
-    delete data.servers[guildId];
-    save(data);
+  async deleteServerKey(guildId) {
+    const { error } = await supabase.from('server_keys').delete().eq('guild_id', guildId);
+    if (error) throw error;
+  },
+
+  async addSchedule(schedule) {
+    const { error } = await supabase.from('schedules').insert(schedule);
+    if (error) throw error;
+  },
+
+  async getSchedulesByGuild(guildId) {
+    const { data, error } = await supabase
+      .from('schedules')
+      .select('*')
+      .eq('guild_id', guildId);
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async getAllSchedules() {
+    const { data, error } = await supabase.from('schedules').select('*');
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async removeSchedule(id) {
+    const { error } = await supabase.from('schedules').delete().eq('id', id);
+    if (error) throw error;
   },
 };

@@ -89,7 +89,7 @@ module.exports = {
     // ── /gemini setup ──────────────────────────────────────────────
     if (sub === 'setup') {
       const apiKey = interaction.options.getString('api_key');
-      db.setUserKey(interaction.user.id, apiKey);
+      await db.setUserKey(interaction.user.id, apiKey);
       return interaction.reply({
         content: '個人 API キーを登録しました。',
         flags: MessageFlags.Ephemeral,
@@ -105,7 +105,7 @@ module.exports = {
         });
       }
       const apiKey = interaction.options.getString('api_key');
-      db.setServerKey(interaction.guildId, apiKey, interaction.user.id);
+      await db.setServerKey(interaction.guildId, apiKey, interaction.user.id);
       return interaction.reply({
         content: 'サーバー共通 API キーを設定しました。',
         flags: MessageFlags.Ephemeral,
@@ -123,7 +123,7 @@ module.exports = {
 
     // ── /gemini remove-key ─────────────────────────────────────────
     if (sub === 'remove-key') {
-      db.deleteUserKey(interaction.user.id);
+      await db.deleteUserKey(interaction.user.id);
       return interaction.reply({
         content: '個人 API キーを削除しました。',
         flags: MessageFlags.Ephemeral,
@@ -133,8 +133,8 @@ module.exports = {
     // ── /gemini schedule-add ───────────────────────────────────────
     if (sub === 'schedule-add') {
       const apiKey =
-        db.getUserKey(interaction.user.id) ??
-        db.getServerKey(interaction.guildId);
+        (await db.getUserKey(interaction.user.id)) ??
+        (await db.getServerKey(interaction.guildId));
 
       if (!apiKey) {
         return interaction.reply({
@@ -145,17 +145,18 @@ module.exports = {
 
       const label = interaction.options.getString('label');
       const prompt = interaction.options.getString('prompt');
-      const intervalMinutes = interaction.options.getInteger('interval');
+      const interval_minutes = interaction.options.getInteger('interval');
       const channel = interaction.options.getChannel('channel') ?? interaction.channel;
+      const id = randomUUID().slice(0, 8);
 
-      const schedule = addSchedule({
-        id: randomUUID().slice(0, 8),
-        guildId: interaction.guildId,
-        channelId: channel.id,
-        userId: interaction.user.id,
+      await addSchedule({
+        id,
+        guild_id: interaction.guildId,
+        channel_id: channel.id,
+        user_id: interaction.user.id,
         label,
         prompt,
-        intervalMinutes,
+        interval_minutes,
       }, interaction.client);
 
       return interaction.reply({
@@ -163,9 +164,9 @@ module.exports = {
           `✅ スケジュールを登録しました。`,
           `- **名前**: ${label}`,
           `- **プロンプト**: ${prompt}`,
-          `- **間隔**: ${intervalMinutes} 分ごと`,
+          `- **間隔**: ${interval_minutes} 分ごと`,
           `- **チャンネル**: <#${channel.id}>`,
-          `- **ID**: \`${schedule.id}\`（削除時に使用）`,
+          `- **ID**: \`${id}\`（削除時に使用）`,
         ].join('\n'),
         flags: MessageFlags.Ephemeral,
       });
@@ -173,7 +174,7 @@ module.exports = {
 
     // ── /gemini schedule-list ──────────────────────────────────────
     if (sub === 'schedule-list') {
-      const schedules = getSchedulesByGuild(interaction.guildId);
+      const schedules = await getSchedulesByGuild(interaction.guildId);
 
       if (schedules.length === 0) {
         return interaction.reply({
@@ -183,7 +184,7 @@ module.exports = {
       }
 
       const lines = schedules.map(s =>
-        `**${s.label}** (ID: \`${s.id}\`)\n  📍 <#${s.channelId}> | ⏱ ${s.intervalMinutes}分ごと\n  💬 ${s.prompt}`
+        `**${s.label}** (ID: \`${s.id}\`)\n  📍 <#${s.channel_id}> | ⏱ ${s.interval_minutes}分ごと\n  💬 ${s.prompt}`
       );
 
       return interaction.reply({
@@ -195,7 +196,7 @@ module.exports = {
     // ── /gemini schedule-remove ────────────────────────────────────
     if (sub === 'schedule-remove') {
       const id = interaction.options.getString('id');
-      const schedules = getSchedulesByGuild(interaction.guildId);
+      const schedules = await getSchedulesByGuild(interaction.guildId);
       const target = schedules.find(s => s.id === id);
 
       if (!target) {
@@ -205,7 +206,7 @@ module.exports = {
         });
       }
 
-      removeSchedule(id);
+      await removeSchedule(id);
       return interaction.reply({
         content: `✅ スケジュール「${target.label}」を削除しました。`,
         flags: MessageFlags.Ephemeral,
@@ -217,8 +218,8 @@ module.exports = {
       const message = interaction.options.getString('message');
 
       const apiKey =
-        db.getUserKey(interaction.user.id) ??
-        db.getServerKey(interaction.guildId);
+        (await db.getUserKey(interaction.user.id)) ??
+        (await db.getServerKey(interaction.guildId));
 
       if (!apiKey) {
         return interaction.reply({
