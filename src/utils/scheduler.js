@@ -7,8 +7,13 @@ const runningTasks = new Map();
 
 function intervalToCron(intervalMinutes) {
   if (intervalMinutes < 60) return `*/${intervalMinutes} * * * *`;
-  const hours = Math.floor(intervalMinutes / 60);
-  return `0 */${hours} * * *`;
+  if (intervalMinutes < 1440) {
+    const hours = Math.floor(intervalMinutes / 60);
+    return `0 */${hours} * * *`;
+  }
+  // 1440分以上（1日以上）は毎日0時に実行
+  const days = Math.floor(intervalMinutes / 1440);
+  return days <= 1 ? `0 0 * * *` : `0 0 */${days} * *`;
 }
 
 function startTask(schedule, client) {
