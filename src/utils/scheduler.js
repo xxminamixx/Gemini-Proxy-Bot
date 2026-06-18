@@ -1,6 +1,25 @@
 const cron = require('node-cron');
 const { chat } = require('./claude-client');
+const { fetchWeather } = require('./weather');
 const db = require('../db/database');
+
+// {weather:東京} をリアルタイム天気データに置き換える
+async function resolvePrompt(prompt) {
+  const matches = [...prompt.matchAll(/\{weather:([^}]+)\}/g)];
+  if (matches.length === 0) return prompt;
+
+  let resolved = prompt;
+  for (const match of matches) {
+    const city = match[1];
+    try {
+      const { text } = await fetchWeather(city);
+      resolved = resolved.replace(match[0], text);
+    } catch (err) {
+      resolved = resolved.replace(match[0], `（${city}の天気取得失敗: ${err.message}）`);
+    }
+  }
+  return resolved;
+}
 
 // Running cron tasks: Map<id, task>
 const runningTasks = new Map();
@@ -34,7 +53,8 @@ function startTask(schedule, client) {
       }
 
       const historyKey = `schedule_${schedule.id}`;
-      const reply = await chat(apiKey, historyKey, schedule.prompt);
+      const resolvedPrompt = await resolvePrompt(schedule.prompt);
+      const reply = await chat(apiKey, historyKey, resolvedPrompt);
       await channel.send(`**[${schedule.label}]**\n${reply}`);
     } catch (err) {
       console.error(`Schedule ${schedule.id} error:`, err);

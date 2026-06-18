@@ -3,6 +3,7 @@ const { randomUUID } = require('crypto');
 const db = require('../db/database');
 const { chat, clearHistory } = require('../utils/claude-client');
 const { addSchedule, removeSchedule, getSchedulesByGuild } = require('../utils/scheduler');
+const { fetchWeather } = require('../utils/weather');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -79,6 +80,15 @@ module.exports = {
         .addStringOption(opt =>
           opt.setName('id')
             .setDescription('削除するスケジュールのID（schedule-list で確認）')
+            .setRequired(true)
+        )
+    )
+    .addSubcommand(sub =>
+      sub.setName('weather')
+        .setDescription('指定した都市の天気を表示する')
+        .addStringOption(opt =>
+          opt.setName('city')
+            .setDescription('都市名（例: Tokyo, Osaka, Sapporo）')
             .setRequired(true)
         )
     ),
@@ -191,6 +201,19 @@ module.exports = {
 
       await removeSchedule(id);
       return interaction.editReply(`✅ スケジュール「${target.label}」を削除しました。`);
+    }
+
+    // ── /gemini weather ───────────────────────────────────────────────
+    if (sub === 'weather') {
+      await interaction.deferReply();
+      const city = interaction.options.getString('city');
+      try {
+        const { text } = await fetchWeather(city);
+        await interaction.editReply(text);
+      } catch (err) {
+        await interaction.editReply(`❌ ${err.message}`);
+      }
+      return;
     }
 
     // ── /gemini chat ───────────────────────────────────────────────
