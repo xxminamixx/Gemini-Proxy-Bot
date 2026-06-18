@@ -1,0 +1,20 @@
+{
+  "name": "gemini-proxy-bot",
+  "version": "1.0.0",
+  "description": "Discord bot that proxies messages to Claude AI",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "deploy": "node src/deploy-commands.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "discord.js": "^14.19.3",
+    "dotenv": "^16.5.0",
+    "node-cron": "^4.4.1"
+  }
+}
