@@ -1,6 +1,11 @@
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
+
+// Debug: confirm env vars are loaded
+console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? '✅ set' : '❌ missing');
+console.log('SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? '✅ set' : '❌ missing');
+console.log('DISCORD_TOKEN:', process.env.DISCORD_TOKEN ? '✅ set' : '❌ missing');
 const { Client, GatewayIntentBits, Collection, Events } = require('discord.js');
 const { initSchedules } = require('./utils/scheduler');
 
