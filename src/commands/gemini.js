@@ -88,8 +88,15 @@ module.exports = {
         .setDescription('指定した都市の天気を表示する')
         .addStringOption(opt =>
           opt.setName('city')
-            .setDescription('都市名（例: Tokyo, Osaka, Sapporo）')
+            .setDescription('都市名（例: Tokyo, Kawasaki, Osaka）')
             .setRequired(true)
+        )
+        .addIntegerOption(opt =>
+          opt.setName('day')
+            .setDescription('何日後の天気か（0=今日, 1=明日, 2=明後日, 最大4）')
+            .setRequired(false)
+            .setMinValue(0)
+            .setMaxValue(4)
         )
     ),
 
@@ -210,8 +217,9 @@ module.exports = {
     if (sub === 'weather') {
       await interaction.deferReply();
       const city = interaction.options.getString('city');
+      const day = interaction.options.getInteger('day') ?? 0;
       try {
-        const { text } = await fetchWeather(city);
+        const { text } = await fetchWeather(city, day);
         await interaction.editReply(text);
       } catch (err) {
         await interaction.editReply(`❌ ${err.message}`);

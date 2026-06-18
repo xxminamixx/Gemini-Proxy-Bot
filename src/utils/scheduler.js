@@ -12,7 +12,7 @@ async function resolvePrompt(prompt) {
   for (const match of matches) {
     const city = match[1];
     try {
-      const { text } = await fetchWeather(city);
+      const { text } = await fetchWeather(city, 0);
       resolved = resolved.replace(match[0], text);
     } catch (err) {
       resolved = resolved.replace(match[0], `（${city}の天気取得失敗: ${err.message}）`);
