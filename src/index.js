@@ -12,7 +12,7 @@ const { initSchedules } = require('./utils/scheduler');
 // Ensure data directory exists
 fs.mkdirSync(path.join(__dirname, '../data'), { recursive: true });
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] });
 client.commands = new Collection();
 
 // Load commands

@@ -150,6 +150,9 @@ module.exports = {
       const prompt = interaction.options.getString('prompt');
       const interval_minutes = interaction.options.getInteger('interval');
       const channel = interaction.options.getChannel('channel') ?? interaction.channel;
+      if (!channel) {
+        return interaction.editReply('チャンネルを特定できませんでした。`channel` オプションで明示的に指定してください。');
+      }
       const id = randomUUID().slice(0, 8);
 
       await addSchedule({
