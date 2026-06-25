@@ -90,6 +90,17 @@ async function initSchedules(client) {
 async function addSchedule(schedule, client) {
   await db.addSchedule(schedule);
   startTask(schedule, client);
+  // 登録直後に1回即時実行
+  const channel = await client.channels.fetch(schedule.channel_id);
+  if (!channel) return;
+  const apiKey =
+    (await db.getUserKey(schedule.user_id)) ??
+    (await db.getServerKey(schedule.guild_id));
+  if (!apiKey) return;
+  const historyKey = `schedule_${schedule.id}`;
+  const resolvedPrompt = await resolvePrompt(schedule.prompt);
+  const reply = await chat(apiKey, historyKey, resolvedPrompt);
+  await channel.send(`**[${schedule.label}]**\n${reply}`);
 }
 
 async function removeSchedule(id) {
