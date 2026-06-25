@@ -24,19 +24,20 @@ async function resolvePrompt(prompt) {
 // Running cron tasks: Map<id, task>
 const runningTasks = new Map();
 
-function intervalToCron(intervalMinutes) {
-  if (intervalMinutes < 60) return `*/${intervalMinutes} * * * *`;
-  if (intervalMinutes < 1440) {
-    const hours = Math.floor(intervalMinutes / 60);
-    return `0 */${hours} * * *`;
+function scheduleToCron(schedule) {
+  if (schedule.cron_time) {
+    const [hour, minute] = schedule.cron_time.split(':');
+    return `${Number(minute)} ${Number(hour)} * * *`;
   }
-  // 1440分以上（1日以上）は毎日0時に実行
-  const days = Math.floor(intervalMinutes / 1440);
+  const m = schedule.interval_minutes;
+  if (m < 60) return `*/${m} * * * *`;
+  if (m < 1440) return `0 */${Math.floor(m / 60)} * * *`;
+  const days = Math.floor(m / 1440);
   return days <= 1 ? `0 0 * * *` : `0 0 */${days} * *`;
 }
 
 function startTask(schedule, client) {
-  const cronExpr = intervalToCron(schedule.interval_minutes);
+  const cronExpr = scheduleToCron(schedule);
 
   const task = cron.schedule(cronExpr, async () => {
     try {

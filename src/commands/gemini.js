@@ -60,9 +60,14 @@ module.exports = {
         .addIntegerOption(opt =>
           opt.setName('interval')
             .setDescription('実行間隔（分）例: 60 = 1時間ごと、1440 = 1日ごと')
-            .setRequired(true)
+            .setRequired(false)
             .setMinValue(5)
             .setMaxValue(10080)
+        )
+        .addStringOption(opt =>
+          opt.setName('time')
+            .setDescription('毎日実行する時刻（HH:MM 形式、例: 08:00）。interval と同時指定不可')
+            .setRequired(false)
         )
         .addChannelOption(opt =>
           opt.setName('channel')
@@ -156,6 +161,18 @@ module.exports = {
       const label = interaction.options.getString('label');
       const prompt = interaction.options.getString('prompt');
       const interval_minutes = interaction.options.getInteger('interval');
+      const cron_time = interaction.options.getString('time');
+
+      if (!interval_minutes && !cron_time) {
+        return interaction.editReply('`interval` か `time` のどちらかを指定してください。');
+      }
+      if (interval_minutes && cron_time) {
+        return interaction.editReply('`interval` と `time` は同時に指定できません。どちらか一方を使ってください。');
+      }
+      if (cron_time && !/^\d{1,2}:\d{2}$/.test(cron_time)) {
+        return interaction.editReply('`time` は `HH:MM` 形式で指定してください（例: `08:00`）。');
+      }
+
       const channel = interaction.options.getChannel('channel') ?? interaction.channel;
       if (!channel) {
         return interaction.editReply('チャンネルを特定できませんでした。`channel` オプションで明示的に指定してください。');
@@ -169,14 +186,16 @@ module.exports = {
         user_id: interaction.user.id,
         label,
         prompt,
-        interval_minutes,
+        interval_minutes: interval_minutes ?? null,
+        cron_time: cron_time ?? null,
       }, interaction.client);
 
+      const scheduleDesc = cron_time ? `毎日 ${cron_time}` : `${interval_minutes} 分ごと`;
       return interaction.editReply([
         `✅ スケジュールを登録しました。`,
         `- **名前**: ${label}`,
         `- **プロンプト**: ${prompt}`,
-        `- **間隔**: ${interval_minutes} 分ごと`,
+        `- **実行タイミング**: ${scheduleDesc}`,
         `- **チャンネル**: <#${channel.id}>`,
         `- **ID**: \`${id}\`（削除時に使用）`,
       ].join('\n'));
@@ -191,9 +210,10 @@ module.exports = {
         return interaction.editReply('このサーバーに登録されたスケジュールはありません。');
       }
 
-      const lines = schedules.map(s =>
-        `**${s.label}** (ID: \`${s.id}\`)\n  📍 <#${s.channel_id}> | ⏱ ${s.interval_minutes}分ごと\n  💬 ${s.prompt}`
-      );
+      const lines = schedules.map(s => {
+        const timing = s.cron_time ? `毎日 ${s.cron_time}` : `${s.interval_minutes}分ごと`;
+        return `**${s.label}** (ID: \`${s.id}\`)\n  📍 <#${s.channel_id}> | ⏱ ${timing}\n  💬 ${s.prompt}`;
+      });
 
       return interaction.editReply(`📅 **スケジュール一覧 (${schedules.length}件)**\n\n${lines.join('\n\n')}`);
     }
