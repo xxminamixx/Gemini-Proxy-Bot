@@ -3,16 +3,17 @@ const { chat } = require('./claude-client');
 const { fetchWeather } = require('./weather');
 const db = require('../db/database');
 
-// {weather:東京} をリアルタイム天気データに置き換える
+// {weather:Tokyo} or {weather:Tokyo:1} をリアルタイム天気データに置き換える
 async function resolvePrompt(prompt) {
-  const matches = [...prompt.matchAll(/\{weather:([^}]+)\}/g)];
+  const matches = [...prompt.matchAll(/\{weather:([^}:]+)(?::(\d+))?\}/g)];
   if (matches.length === 0) return prompt;
 
   let resolved = prompt;
   for (const match of matches) {
     const city = match[1];
+    const day = match[2] ? parseInt(match[2], 10) : 0;
     try {
-      const { text } = await fetchWeather(city, 0);
+      const { text } = await fetchWeather(city, day);
       resolved = resolved.replace(match[0], text);
     } catch (err) {
       resolved = resolved.replace(match[0], `（${city}の天気取得失敗: ${err.message}）`);
