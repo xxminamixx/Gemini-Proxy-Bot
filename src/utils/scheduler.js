@@ -58,6 +58,12 @@ function startTask(schedule, client) {
       await channel.send(`**[${schedule.label}]**\n${reply}`);
     } catch (err) {
       console.error(`Schedule ${schedule.id} error:`, err);
+      // Channel gone or bot lacks access — stop and remove the schedule
+      if (err.code === 50001 || err.code === 10003) {
+        console.warn(`Schedule ${schedule.id} auto-removed: channel inaccessible (code ${err.code})`);
+        await db.removeSchedule(schedule.id);
+        stopTask(schedule.id);
+      }
     }
   });
 
